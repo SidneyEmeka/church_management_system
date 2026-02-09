@@ -5,12 +5,9 @@ const mongoose = require('mongoose');
 
 const startDb = require('./configs/dbconnect.js');
 const authRoutes = require('./routes/authroutes.js');
+const userRoutes = require('./routes/userroute.js')
 
 startDb();
-
-
-
-
 
 
 const app = express()
@@ -19,6 +16,9 @@ const app = express()
 app.use(bodyParser.json());
 
 app.use("/api/auth", authRoutes)
+
+app.use("/api/users", userRoutes)
+
 
 app.listen(process.env.PORT, () => {
   console.log(`Server is running on http://localhost:${process.env.PORT}`)
