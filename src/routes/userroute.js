@@ -4,7 +4,10 @@ const router = express.Router();
 
 const verifyToken = require("../middleware/authmiddleware.js");
 const authorizeRoles = require("../middleware/rolemidddleware.js");
+const { createOrUpdateProfile } = require("../controllers/usercontrollers.js")
 
+
+router.post("/createprofile", verifyToken, createOrUpdateProfile)
 
 /**
  * @access  Only Role = Pastor

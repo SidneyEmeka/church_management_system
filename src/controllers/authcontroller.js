@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const userObject = require("../models/userprofilemodel.js");
+const authObject = require("../models/authprofilemodel");
 
 const register = async (req, res) => {
   try {
@@ -13,19 +13,14 @@ const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
     const body = {
-      name: req.body.name,
       password: hashedPassword,
       role: req.body.role,
-      address: req.body.address,
-      age: req.body.age,
-      dob: req.body.dob,
-      phoneNumber: req.body.phoneNumber,
       email: req.body.email,
       invitedBy: req.body.invitedBy,
     };
 
     // Check if email already exists
-    const existingUser = await userObject.findOne({ email: body.email });
+    const existingUser = await authObject.findOne({ email: body.email });
     if (existingUser) {
       return res.status(409).send({
         success: false,
@@ -33,7 +28,7 @@ const register = async (req, res) => {
       });
     }
 
-    const newUser = new userObject(body);
+    const newUser = new authObject(body);
 
     await newUser.save();
 
@@ -56,7 +51,7 @@ const login = async (req, res) => {
     console.log(`logiiiiiiii`);
     const body = { email: req.body.email, password: req.body.password };
 
-    const theUser = await userObject.findOne({ email: body.email });
+    const theUser = await authObject.findOne({ email: body.email });
 
     if (theUser) {
       const isMatch = await bcrypt.compare(body.password, theUser.password);

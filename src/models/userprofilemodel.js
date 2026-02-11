@@ -6,19 +6,6 @@ const userSchema = mongoose.Schema(
       type: String,
       required: [true, "User name is required"],
     },
-    password: {
-      type: String,
-      required: [true, "User password is required"],
-      minlength: 6,
-    },
-    role: {
-  type: String,
-  required: [true, "Role is required"],
-  enum: {
-    values: ['pastor','member'],
-    message: 'Role must be either "pastor", "volunteer", or "member"'
-  }
-},
     address: {
       type: String,
       required: [true, "User address is required"],
@@ -43,16 +30,12 @@ const userSchema = mongoose.Schema(
       type: Number,
       required: [true, "User phone is required"],
     },
-   email: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true,
-    match: /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/
-  },
-    invitedBy: {
-      type: String,
-    },
+    authDetails:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Auth',
+      required: true,
+    unique: true
+    }
     // cloudinaryPublicId: {
     //   type: String,
     //   required: [true, "Product img is required"],
