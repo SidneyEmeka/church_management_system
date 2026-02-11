@@ -7,7 +7,13 @@ const startDb = require('./configs/dbconnect.js');
 const authRoutes = require('./routes/authroutes.js');
 const userRoutes = require('./routes/userroute.js')
 
-startDb();
+startDb().then((r)=>{
+  if(r==true){
+    app.listen(process.env.PORT, () => {
+  console.log(`Server is running on http://localhost:${process.env.PORT}`)
+ });
+  }
+});
 
 
 const app = express()
@@ -20,9 +26,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/users", userRoutes)
 
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server is running on http://localhost:${process.env.PORT}`)
- });
+
 
 app.get('/health', (req, res) => {
   res.status(200).send({
