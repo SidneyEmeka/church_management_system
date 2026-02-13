@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const startDb = require('./configs/dbconnect.js');
 const authRoutes = require('./routes/authroutes.js');
 const userRoutes = require('./routes/userroute.js')
+const churchRoutes = require('./routes/churchroute.js')
 
 startDb().then((r)=>{
   if(r==true){
@@ -24,6 +25,9 @@ app.use(bodyParser.json());
 app.use("/api/auth", authRoutes)
 
 app.use("/api/users", userRoutes)
+
+app.use("/api/church", churchRoutes)
+
 
 
 

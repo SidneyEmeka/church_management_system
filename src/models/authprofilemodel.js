@@ -27,6 +27,11 @@ const authSchema = mongoose.Schema(
     lowercase: true,
     match: /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/
     },
+    isProfileComplete: {
+      type: Boolean,
+      default: false 
+    },
+    
   },
   { timestamps: true },
 );

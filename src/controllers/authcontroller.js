@@ -1,6 +1,8 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const authObject = require("../models/authprofilemodel");
+const {fetchProfileForLogin } = require("../controllers/usercontrollers.js")
+
 
 const register = async (req, res) => {
   try {
@@ -63,21 +65,26 @@ const login = async (req, res) => {
           { expiresIn: "1h" },
         );
 
+       const userProfile = await fetchProfileForLogin(theUser._id);
+        
+
         res.status(200).send({
-          success: false,
+          success: true,
           message: `Login Successful`,
           data: {
             User: {
-              id: theUser._id,
-              name: theUser.name,
+              //id: theUser._id,
+             // name: theUser.name,
               email: theUser.email,
               role: theUser.role,
-              age: theUser.age,
-              address: theUser.address,
-              dob: theUser.dob,
-              phoneNumber: theUser.phoneNumber,
-              email: theUser.email,
+              //age: theUser.age,
+              //address: theUser.address,
+             // dob: theUser.dob,
+             // phoneNumber: theUser.phoneNumber,
+              //email: theUser.email,
+              profile: userProfile.data,
               invitedBy: theUser.invitedBy,
+              isProfileComplete: theUser.isProfileComplete,
               createdAt: theUser.createdAt,
             },
             token: token,
@@ -103,6 +110,7 @@ const login = async (req, res) => {
       message: "Login not successful",
       data: err.message,
     });
+    console.log(err)
   }
 };
 
