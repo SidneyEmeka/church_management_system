@@ -4,12 +4,14 @@ const router = express.Router();
 
 const verifyToken = require("../middleware/authmiddleware.js");
 const authorizeRoles = require("../middleware/rolemidddleware.js");
-const { createAchurch,joinAchurch,exitAChurch } = require("../controllers/churchcontroller.js")
+const { createAchurch,joinAchurch,exitAChurch,createADonation,makeADonation } = require("../controllers/churchcontroller.js")
 
 
 router.patch("/joinchurch/:id",verifyToken,joinAchurch);
 
 router.patch("/exitchurch/:id",verifyToken,exitAChurch);
+
+router.patch("/makedonation/:id", verifyToken, makeADonation);
 
 
 
@@ -19,7 +21,12 @@ router.patch("/exitchurch/:id",verifyToken,exitAChurch);
  */
 
 //create a church
-router.post("/createChurch/:id", verifyToken,authorizeRoles("pastor"), createAchurch);
+router.post("/createchurch/:pastorId", verifyToken,authorizeRoles("pastor"), createAchurch);
+
+router.post("/createdonation/:pastorId", verifyToken,authorizeRoles("pastor"), createADonation);
+
+
+
 
 
 router.get("/pastor", verifyToken, authorizeRoles("pastor"), (req,res)=>{
@@ -30,7 +37,7 @@ router.get("/pastor", verifyToken, authorizeRoles("pastor"), (req,res)=>{
     });
 })
 
-///crete church
+
 
 
 
