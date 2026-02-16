@@ -259,7 +259,8 @@ const makeADonation = async (req, res) => {
     const donationExists = await donationObject.findOne({ _id: donationId }).populate('donators.user');
 
     if (donationExists) {
-     donationExists.donators.push({
+      if(req.body.donated >= donationExists.donationMetrics.minAmount){
+        donationExists.donators.push({
         user: userID,
         donated: req.body.donated,
         transactionId: req.body.transactionId,
@@ -273,6 +274,14 @@ const makeADonation = async (req, res) => {
         message: `Your donation to ${donationExists.donationName} has been received, upon verification [Usually 24hrs] we would send an appreciation email`,
         data: donationExists,
       });
+      }
+     else{
+      res.status(404).send({
+        success: false,
+        message: `Unable to make donation`,
+        data: `Minimum donation amount is ${donationExists.donationMetrics.minAmount}`,
+      });
+     }
     } else {
       res.status(404).send({
         success: false,
