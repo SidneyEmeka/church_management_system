@@ -6,7 +6,7 @@ const donationObject = require("../models/donationsmodel.js");
 const createAchurch = async (req, res) => {
   //get pastors ID after creating his profile or after logging
 
-  const pastorID = req.params.id;
+  const pastorID = req.params.pastorId;
   console.log(`Pastor Id is ${pastorID}`);
 
   const churchData = req.body;
@@ -186,7 +186,7 @@ const exitAChurch = async (req, res) => {
 
 const createADonation = async (req, res) => {
   const churchId = req.body.church;
-  const pastorID = req.params.id;
+  const pastorID = req.params.pastorId;
 
   try {
     const theChurch = await churchObject
@@ -256,32 +256,52 @@ const makeADonation = async (req, res) => {
   const donationId = req.body.donationId;
 
   try {
-    const donationExists = await donationObject.findOne({ _id: donationId }).populate('donators.user');
+    const donationExists = await donationObject
+      .findOne({ _id: donationId })
+      .populate("donators.user", "name -_id");
 
     if (donationExists) {
-      if(req.body.donated >= donationExists.donationMetrics.minAmount){
-        donationExists.donators.push({
-        user: userID,
-        donated: req.body.donated,
-        transactionId: req.body.transactionId,
-        paymentVerified: false,
-      });
+      const currentDate = new Date();
+      if (currentDate <= donationExists.endDate) {
+        if (req.body.donated >= donationExists.donationMetrics.minAmount) {
+          donationExists.donators.push({
+            user: userID,
+            donated: req.body.donated,
+            transactionId: req.body.transactionId,
+            paymentVerified: false,
+          });
 
-      await donationExists.save();
+          await donationExists.save();
 
-      res.status(200).send({
-        success: true,
-        message: `Your donation to ${donationExists.donationName} has been received, upon verification [Usually 24hrs] we would send an appreciation email`,
-        data: donationExists,
-      });
+          res.status(200).send({
+            success: true,
+            message: `Your donation to ${donationExists.donationName} has been received, upon verification [Usually 24hrs] we would send an appreciation email`,
+            data: donationExists,
+          });
+        } else {
+          res.status(404).send({
+            success: false,
+            message: `Unable to make donation`,
+            data: `Minimum donation amount is ${donationExists.donationMetrics.minAmount}`,
+          });
+        }
+      } else {
+        // if (currentDate < donationExists.startDate) {
+        //   return res.status(400).send({
+        //     success: false,
+        //     message: `Unable to make donation`,
+        //     error: `This donation starts on ${donationExists.startDate.toLocaleDateString()}`,
+        //   });
+        // }
+
+        // if (currentDate > donationExists.endDate) {
+        return res.status(400).send({
+          success: false,
+          message: `Unable to make donation`,
+          error: `This donation ended on ${donationExists.endDate.toLocaleDateString()}`,
+        });
+        //}
       }
-     else{
-      res.status(404).send({
-        success: false,
-        message: `Unable to make donation`,
-        data: `Minimum donation amount is ${donationExists.donationMetrics.minAmount}`,
-      });
-     }
     } else {
       res.status(404).send({
         success: false,
@@ -298,6 +318,96 @@ const makeADonation = async (req, res) => {
   }
 };
 
+const editDonationStatus = async (req, res) => {};
+
+const getAllDonationsForAChurch = async (req, res) => {
+  const churchId = req.params.churchId;
+
+  try {
+    const theChurch = await churchObject.findOne({ _id: churchId });
+    if (theChurch) {
+      const allDonations = await donationObject
+        .find({ church: churchId })
+        .populate("donators.user", "name phoneNumber");
+      res.status(200).send({
+        success: true,
+        message: `These are the available donations for ${theChurch.name}`,
+        data: allDonations,
+      });
+    } else {
+      res.status(404).send({
+        success: false,
+        message: `Unable to get donations`,
+        data: "Church with this Id does not exist",
+      });
+    }
+  } catch (err) {
+    res.status(500).send({
+      success: false,
+      message: "Unable to get donations",
+      data: err.message,
+    });
+  }
+};
+
+const verifyDonation = async (req, res) => {
+  const { donationId, transactionId } = req.body;
+  try {
+    const hasbeenVerified = await donationObject.findOne({
+      _id: donationId,
+      "donators.transactionId": transactionId,
+      "donators.paymentVerified": true,
+    });
+    if (hasbeenVerified) {
+      res.status(400).send({
+        success: false,
+        message: `Unable to verify donations`,
+        data: "This donation has already been verified",
+      });
+    } else {
+      const theDonation = await donationObject.findOne({
+        _id: donationId,
+        "donators.transactionId": transactionId,
+      });
+      const donatorIndex = theDonation.donators.findIndex(
+        (d) => d.transactionId.toString() === transactionId,
+      );
+      if (donatorIndex !== -1) {
+        const donaetedAmount = theDonation.donators[donatorIndex].donated;
+
+        const updatedDonation = await donationObject
+        .findOneAndUpdate(
+          {
+            _id: donationId,
+            "donators.transactionId": transactionId,
+          },
+          {
+            $set: { "donators.$.paymentVerified": true },
+             $inc: { "donationMetrics.totalGotten": donaetedAmount }
+          },
+
+          { new: true },
+        )
+        .populate("donators.user", "name phoneNumber");
+
+      res.status(200).send({
+        success: true,
+        message: `Payment verified`,
+        data: updatedDonation,
+      });
+      }
+
+      
+    }
+  } catch (err) {
+    res.status(500).send({
+      success: false,
+      message: "Unable to verify donation",
+      data: err.message,
+    });
+  }
+};
+
 ///todo
 //get all churches
 
@@ -308,10 +418,14 @@ const makeADonation = async (req, res) => {
 //get a donation
 //verify payment
 
+//getallmembersofachurch
+
 module.exports = {
   createAchurch,
   joinAchurch,
   exitAChurch,
   createADonation,
   makeADonation,
+  getAllDonationsForAChurch,
+  verifyDonation,
 };
