@@ -8,10 +8,11 @@ const authRoutes = require('./routes/authroutes.js');
 const userRoutes = require('./routes/userroute.js')
 const churchRoutes = require('./routes/churchroute.js')
 
+
 startDb().then((r)=>{
   if(r==true){
-    app.listen(process.env.PORT, () => {
-  console.log(`Server is running on http://localhost:${process.env.PORT}`)
+    app.listen(3001, () => {
+  console.log(`Server is running on ${process.env.BASE_URL}`)
  });
   }
 });
@@ -27,6 +28,23 @@ app.use("/api/auth", authRoutes)
 app.use("/api/users", userRoutes)
 
 app.use("/api/church", churchRoutes)
+
+
+
+app.set('view engine', 'ejs')
+app.get('/', (req, res) => {
+  res.render('index.ejs')
+});
+
+app.get('/complete', (req, res) => {
+  //console.log(req.query.session_id)
+  res.send('payment successful')
+});
+
+app.get('/cancel', (req, res) => {
+  res.send('payment cancelled');
+  //res.redirect('/');
+});
 
 
 

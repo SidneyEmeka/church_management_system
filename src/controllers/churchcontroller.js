@@ -2,6 +2,8 @@ const profileObject = require("../models/userprofilemodel.js");
 const churchObject = require("../models/churchmodel.js");
 const donationObject = require("../models/donationsmodel.js");
 
+const stripe = require("stripe")(process.env.STRIPE_KEY);
+
 ///CHURCCH///
 const createAchurch = async (req, res) => {
   //get pastors ID after creating his profile or after logging
@@ -253,7 +255,10 @@ const createADonation = async (req, res) => {
 
 const makeADonation = async (req, res) => {
   const userID = req.params.id;
-  const donationId = req.body.donationId;
+  // const donationId = req.body.donationId;
+  // const userEmail = req.body;
+
+  const { donationId, useremail } = req.body;
 
   try {
     const donationExists = await donationObject
@@ -264,10 +269,35 @@ const makeADonation = async (req, res) => {
       const currentDate = new Date();
       if (currentDate <= donationExists.endDate) {
         if (req.body.donated >= donationExists.donationMetrics.minAmount) {
+          ///INITTIATE SESSION
+          const session = await stripe.checkout.sessions.create({
+            client_reference_id: userID,
+            customer_email: useremail,
+            line_items: [
+              {
+                price_data: {
+                  currency: "usd",
+                  product_data: {
+                    name: donationExists.donationName,
+                    //id: 'produuct id'
+                  },
+                  unit_amount: req.body.donated * 100,
+                },
+                quantity: 1,
+              },
+            ],
+            mode: "payment",
+            success_url: `${process.env.BASE_URL}/complete?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.BASE_URL}/cancel`,
+          });
+          console.log(session);
+          const paymentId = session.id;
+          const paymentUrl = session.url;
+
           donationExists.donators.push({
             user: userID,
             donated: req.body.donated,
-            transactionId: req.body.transactionId,
+            transactionId: paymentId,
             paymentVerified: false,
           });
 
@@ -275,9 +305,18 @@ const makeADonation = async (req, res) => {
 
           res.status(200).send({
             success: true,
-            message: `Your donation to ${donationExists.donationName} has been received, upon verification [Usually 24hrs] we would send an appreciation email`,
-            data: donationExists,
+            message: `Your donation to ${donationExists.donationName} has been initiated. Kindly visit the url below to complete payment`,
+            data: {
+              Id: paymentId,
+              url: paymentUrl,
+            },
           });
+
+          // res.status(200).send({
+          //   success: true,
+          //   message: `Your donation to ${donationExists.donationName} has been received, upon verification [Usually 24hrs] we would send an appreciation email`,
+          //   data: donationExists,
+          // });
         } else {
           res.status(404).send({
             success: false,
@@ -352,6 +391,7 @@ const getAllDonationsForAChurch = async (req, res) => {
 
 const verifyDonation = async (req, res) => {
   const { donationId, transactionId } = req.body;
+
   try {
     const hasbeenVerified = await donationObject.findOne({
       _id: donationId,
@@ -359,7 +399,7 @@ const verifyDonation = async (req, res) => {
       "donators.paymentVerified": true,
     });
     if (hasbeenVerified) {
-      res.status(400).send({
+      res.status(200).send({
         success: false,
         message: `Unable to verify donations`,
         data: "This donation has already been verified",
@@ -375,29 +415,39 @@ const verifyDonation = async (req, res) => {
       if (donatorIndex !== -1) {
         const donaetedAmount = theDonation.donators[donatorIndex].donated;
 
-        const updatedDonation = await donationObject
-        .findOneAndUpdate(
-          {
-            _id: donationId,
-            "donators.transactionId": transactionId,
-          },
-          {
-            $set: { "donators.$.paymentVerified": true },
-             $inc: { "donationMetrics.totalGotten": donaetedAmount }
-          },
+        const session = await stripe.checkout.sessions.retrieve(transactionId);
 
-          { new: true },
-        )
-        .populate("donators.user", "name phoneNumber");
+        //console.log(session);
 
-      res.status(200).send({
-        success: true,
-        message: `Payment verified`,
-        data: updatedDonation,
-      });
+        if (session.payment_status === "paid") {
+          const updatedDonation = await donationObject
+            .findOneAndUpdate(
+              {
+                _id: donationId,
+                "donators.transactionId": transactionId,
+              },
+              {
+                $set: { "donators.$.paymentVerified": true },
+                $inc: { "donationMetrics.totalGotten": donaetedAmount },
+              },
+
+              { new: true },
+            )
+            .populate("donators.user", "name phoneNumber");
+
+          res.status(200).send({
+            success: true,
+            message: `Payment verified`,
+            data: updatedDonation,
+          });
+        } else {
+          return res.status(200).send({
+            success: true,
+            message: `Payment not successful`,
+            error: `This payment's transaction was not successful`,
+          });
+        }
       }
-
-      
     }
   } catch (err) {
     res.status(500).send({
@@ -407,6 +457,8 @@ const verifyDonation = async (req, res) => {
     });
   }
 };
+
+
 
 ///todo
 //get all churches
