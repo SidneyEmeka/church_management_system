@@ -4,7 +4,7 @@ const router = express.Router();
 
 const verifyToken = require("../middleware/authmiddleware.js");
 const authorizeRoles = require("../middleware/rolemidddleware.js");
-const { createAchurch,joinAchurch,exitAChurch,createADonation,makeADonation,verifyDonation,getAllDonationsForAChurch } = require("../controllers/churchcontroller.js")
+const { createAchurch,joinAchurch,exitAChurch,createADonation,makeADonation,verifyDonation,getAllDonationsForAChurch, getAllPastorChurches} = require("../controllers/churchcontroller.js")
 
 
 router.patch("/joinchurch/:id",verifyToken,joinAchurch);
@@ -29,6 +29,8 @@ router.post("/createchurch/:pastorId", verifyToken,authorizeRoles("pastor"), cre
 router.post("/createdonation/:pastorId", verifyToken,authorizeRoles("pastor"), createADonation);
 
 router.patch("/verifydonation", verifyToken,authorizeRoles("pastor"), verifyDonation);
+
+router.get("/getchurches/:pastorId", verifyToken,authorizeRoles("pastor"), getAllPastorChurches);
 
 
 
