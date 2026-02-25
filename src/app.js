@@ -8,12 +8,13 @@ const authRoutes = require('./routes/authroutes.js');
 const userRoutes = require('./routes/userroute.js')
 const churchRoutes = require('./routes/churchroute.js')
 
+const PORT = process.env.PORT || 3001;
 
 startDb().then((r)=>{
   if(r==true){
-    app.listen(3001, () => {
+   app.listen(PORT, () => {
   console.log(`Server is running on ${process.env.BASE_URL}`)
- });
+});
   }
 });
 
