@@ -8,7 +8,7 @@ const createOrUpdateProfile = async (req, res) => {
   console.log(`His Id is ${userId}`);
 
   const profileData = req.body;
-
+//dob as YYYY-MM-DD
   try {
     let profile = await profileObject.findOne({ authDetails: userId });
 
@@ -56,6 +56,10 @@ const createOrUpdateProfile = async (req, res) => {
   }
 };
 
+
+
+
+
 //fetch a user's profile
 const getUserProfile = async (req, res) => {
   const userId = req.theUser.id;
@@ -88,6 +92,10 @@ const getUserProfile = async (req, res) => {
     });
   }
 };
+
+
+
+
 
 const fetchProfileForLogin = async (authId) => {
   const userId = authId;

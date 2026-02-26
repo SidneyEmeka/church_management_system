@@ -16,7 +16,7 @@ const churchSchema = mongoose.Schema(
       type: String,
       required: [true, "Church address is required"],
     },
-    supportContact: {
+    supportcontact: {
       type: {
         phone: {
           type: String,
