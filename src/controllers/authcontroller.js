@@ -16,7 +16,7 @@ const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
     const body = {
       password: hashedPassword,
-      role: req.body.role,
+      role: req.body.role.toLowerCase(),
       email: req.body.email,
       invitedBy: req.body.invitedBy,
     };
