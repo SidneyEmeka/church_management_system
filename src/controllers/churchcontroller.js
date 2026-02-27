@@ -492,7 +492,7 @@ const getAllUserChurches = async (req,res) => {
   const  userId  = req.params.id;
 
   try{
-    const theUserChurches = await churchObject.find({ members : userId}).select("-__v -createdAt -updatedAt -members");
+    const theUserChurches = await churchObject.find({ members : userId}).select("-__v -createdAt -updatedAt -members").populate("pastor");
     if(theUserChurches.length > 0){
        res.status(200).send({
           success: true,
