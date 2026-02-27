@@ -379,7 +379,7 @@ const editDonationStatus = async (req, res) => {
     const donationExists = await donationObject.findOne({
       _id: donationId,
       church: churchId,
-    });
+    }).select("-donators");
 
     if (donationExists) {
       if (["on", "off", "completed"].includes(status)) {
@@ -577,9 +577,6 @@ const getAllUserChurches = async (req, res) => {
 };
 
 ///todo
-
-//get alllchurchesofauseer
-//const churches = await churchObject.find({ members: userID });
 
 //get a donation
 
