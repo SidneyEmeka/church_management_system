@@ -268,60 +268,75 @@ const makeADonation = async (req, res) => {
     if (donationExists) {
       const currentDate = new Date();
       if (currentDate <= donationExists.endDate) {
-        if (req.body.donated >= donationExists.donationMetrics.minAmount) {
-          ///INITTIATE SESSION
-          const session = await stripe.checkout.sessions.create({
-            client_reference_id: userID,
-            customer_email: useremail,
-            line_items: [
-              {
-                price_data: {
-                  currency: "usd",
-                  product_data: {
-                    name: donationExists.donationName,
-                    //id: 'produuct id'
+        //check status
+        if (donationExists.donationStatus === "on") {
+          if (req.body.donated >= donationExists.donationMetrics.minAmount) {
+            ///INITTIATE SESSION
+            const session = await stripe.checkout.sessions.create({
+              client_reference_id: userID,
+              customer_email: useremail,
+              line_items: [
+                {
+                  price_data: {
+                    currency: "usd",
+                    product_data: {
+                      name: donationExists.donationName,
+                      //id: 'produuct id'
+                    },
+                    unit_amount: req.body.donated * 100,
                   },
-                  unit_amount: req.body.donated * 100,
+                  quantity: 1,
                 },
-                quantity: 1,
+              ],
+              mode: "payment",
+              success_url: `${process.env.BASE_URL}/complete?session_id={CHECKOUT_SESSION_ID}`,
+              cancel_url: `${process.env.BASE_URL}/cancel`,
+            });
+            console.log(session);
+            const paymentId = session.id;
+            const paymentUrl = session.url;
+
+            donationExists.donators.push({
+              user: userID,
+              donated: req.body.donated,
+              transactionId: paymentId,
+              paymentVerified: false,
+            });
+
+            await donationExists.save();
+
+            res.status(200).send({
+              success: true,
+              message: `Your donation to ${donationExists.donationName} has been initiated. Kindly visit the url below to complete payment`,
+              data: {
+                Id: paymentId,
+                url: paymentUrl,
               },
-            ],
-            mode: "payment",
-            success_url: `${process.env.BASE_URL}/complete?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.BASE_URL}/cancel`,
-          });
-          console.log(session);
-          const paymentId = session.id;
-          const paymentUrl = session.url;
+            });
 
-          donationExists.donators.push({
-            user: userID,
-            donated: req.body.donated,
-            transactionId: paymentId,
-            paymentVerified: false,
-          });
-
-          await donationExists.save();
-
+            // res.status(200).send({
+            //   success: true,
+            //   message: `Your donation to ${donationExists.donationName} has been received, upon verification [Usually 24hrs] we would send an appreciation email`,
+            //   data: donationExists,
+            // });
+          } else {
+            res.status(404).send({
+              success: false,
+              message: `Unable to make donation`,
+              data: `Minimum donation amount is ${donationExists.donationMetrics.minAmount}`,
+            });
+          }
+        } else if (donationExists.donationStatus === "completed") {
           res.status(200).send({
-            success: true,
-            message: `Your donation to ${donationExists.donationName} has been initiated. Kindly visit the url below to complete payment`,
-            data: {
-              Id: paymentId,
-              url: paymentUrl,
-            },
-          });
-
-          // res.status(200).send({
-          //   success: true,
-          //   message: `Your donation to ${donationExists.donationName} has been received, upon verification [Usually 24hrs] we would send an appreciation email`,
-          //   data: donationExists,
-          // });
-        } else {
-          res.status(404).send({
             success: false,
             message: `Unable to make donation`,
-            data: `Minimum donation amount is ${donationExists.donationMetrics.minAmount}`,
+            data: "The target for this donation has been achieved",
+          });
+        } else {
+          res.status(200).send({
+            success: false,
+            message: `Unable to make donation`,
+            data: "This donation is not open yet",
           });
         }
       } else {
@@ -357,7 +372,47 @@ const makeADonation = async (req, res) => {
   }
 };
 
-const editDonationStatus = async (req, res) => {};
+const editDonationStatus = async (req, res) => {
+  const { donationId, churchId, status } = req.body;
+
+  try {
+    const donationExists = await donationObject.findOne({
+      _id: donationId,
+      church: churchId,
+    });
+
+    if (donationExists) {
+      if (["on", "off", "completed"].includes(status)) {
+        donationExists.donationStatus = status;
+        await donationExists.save();
+
+        res.status(200).send({
+          success: true,
+          message: `Donation status changed`,
+          data: donationExists,
+        });
+      } else {
+        res.status(400).send({
+          success: false,
+          message: `Unable to edit donation status`,
+          data: "Donation status must be on, off or completed",
+        });
+      }
+    } else {
+      res.status(400).send({
+        success: false,
+        message: `Unable to edit donation status`,
+        data: "Donation not found",
+      });
+    }
+  } catch (err) {
+    res.status(500).send({
+      success: false,
+      message: "Unable to edit donation status",
+      data: err.message,
+    });
+  }
+};
 
 const getAllDonationsForAChurch = async (req, res) => {
   const churchId = req.params.churchId;
@@ -458,74 +513,75 @@ const verifyDonation = async (req, res) => {
   }
 };
 
-
-const getAllPastorChurches = async (req,res) => {
-  
+const getAllPastorChurches = async (req, res) => {
   const pastorId = req.params.pastorId;
-   try{
-    const theChurches = await churchObject.find({pastor: pastorId}).select("-__v -createdAt -updatedAt").populate('members pastor', '-_id -authDetails -__v -createdAt -updatedAt');
-    console.log(pastorId)
-    if(theChurches.length > 0){
-       res.status(200).send({
-          success: true,
-          message: `You have ${theChurches.length} church(es)`,
-          data: theChurches,
-        });
-    }
-    else{
-        res.status(404).send({
+  try {
+    const theChurches = await churchObject
+      .find({ pastor: pastorId })
+      .select("-__v -createdAt -updatedAt")
+      .populate(
+        "members pastor",
+        "-_id -authDetails -__v -createdAt -updatedAt",
+      );
+    console.log(pastorId);
+    if (theChurches.length > 0) {
+      res.status(200).send({
+        success: true,
+        message: `You have ${theChurches.length} church(es)`,
+        data: theChurches,
+      });
+    } else {
+      res.status(404).send({
         success: false,
         message: `Unable to fetch churches`,
         data: "You do not have any churches",
       });
     }
-   }catch (err) {
+  } catch (err) {
     res.status(500).send({
       success: false,
       message: "Unable to fetch churches",
       data: err.message,
     });
   }
-}
+};
 
-const getAllUserChurches = async (req,res) => {
-  const  userId  = req.params.id;
+const getAllUserChurches = async (req, res) => {
+  const userId = req.params.id;
 
-  try{
-    const theUserChurches = await churchObject.find({ members : userId}).select("-__v -createdAt -updatedAt -members").populate("pastor");
-    if(theUserChurches.length > 0){
-       res.status(200).send({
-          success: true,
-          message: `You are in ${theUserChurches.length} church(es)`,
-          data: theUserChurches,
-        });
-    }
-    else{
-        res.status(404).send({
+  try {
+    const theUserChurches = await churchObject
+      .find({ members: userId })
+      .select("-__v -createdAt -updatedAt -members")
+      .populate("pastor", "-_id -__v -createdAt -updatedAt -authDetails");
+    if (theUserChurches.length > 0) {
+      res.status(200).send({
+        success: true,
+        message: `You are in ${theUserChurches.length} church(es)`,
+        data: theUserChurches,
+      });
+    } else {
+      res.status(404).send({
         success: false,
         message: `Unable to fetch churches`,
         data: "You are not a member of any church yet",
       });
     }
-  }catch(err){
-     res.status(500).send({
+  } catch (err) {
+    res.status(500).send({
       success: false,
       message: "Unable to fetch churches",
       data: err.message,
     });
   }
-
-}
+};
 
 ///todo
-
 
 //get alllchurchesofauseer
 //const churches = await churchObject.find({ members: userID });
 
 //get a donation
-
-
 
 module.exports = {
   createAchurch,
@@ -536,5 +592,6 @@ module.exports = {
   getAllDonationsForAChurch,
   verifyDonation,
   getAllPastorChurches,
-  getAllUserChurches
+  getAllUserChurches,
+  editDonationStatus,
 };
