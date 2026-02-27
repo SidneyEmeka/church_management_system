@@ -467,7 +467,7 @@ const getAllPastorChurches = async (req,res) => {
     console.log(pastorId)
     if(theChurches.length > 0){
        res.status(200).send({
-          success: false,
+          success: true,
           message: `You have ${theChurches.length} church(es)`,
           data: theChurches,
         });
@@ -488,6 +488,35 @@ const getAllPastorChurches = async (req,res) => {
   }
 }
 
+const getAllUserChurches = async (req,res) => {
+  const  userId  = req.params.id;
+
+  try{
+    const theUserChurches = await churchObject.find({ members : userId}).select("-__v -createdAt -updatedAt -members");
+    if(theUserChurches.length > 0){
+       res.status(200).send({
+          success: true,
+          message: `You are in ${theUserChurches.length} church(es)`,
+          data: theUserChurches,
+        });
+    }
+    else{
+        res.status(404).send({
+        success: false,
+        message: `Unable to fetch churches`,
+        data: "You are not a member of any church yet",
+      });
+    }
+  }catch(err){
+     res.status(500).send({
+      success: false,
+      message: "Unable to fetch churches",
+      data: err.message,
+    });
+  }
+
+}
+
 ///todo
 
 
@@ -506,5 +535,6 @@ module.exports = {
   makeADonation,
   getAllDonationsForAChurch,
   verifyDonation,
-  getAllPastorChurches
+  getAllPastorChurches,
+  getAllUserChurches
 };
