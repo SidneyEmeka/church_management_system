@@ -6,7 +6,8 @@ const verifyToken = require("../middleware/authmiddleware.js");
 const authorizeRoles = require("../middleware/rolemidddleware.js");
 const { createAchurch,joinAchurch,exitAChurch,createADonation,
   makeADonation,verifyDonation,getAllDonationsForAChurch, 
-  getAllPastorChurches, getAllUserChurches,editDonationStatus } = require("../controllers/churchcontroller.js")
+  getAllPastorChurches, getAllUserChurches,editDonationStatus,
+sendEmailToAllMembers } = require("../controllers/churchcontroller.js")
 
 
 router.patch("/joinchurch/:id",verifyToken,joinAchurch);
@@ -38,6 +39,8 @@ router.patch("/verifydonation", verifyToken,authorizeRoles("pastor"), verifyDona
 router.get("/getchurches/:pastorId", verifyToken,authorizeRoles("pastor"), getAllPastorChurches);
 
 router.patch("/editdonationstatus", verifyToken,authorizeRoles("pastor"), editDonationStatus);
+
+router.post("/sendemailtoall", verifyToken,authorizeRoles("pastor"), sendEmailToAllMembers);
 
 
 

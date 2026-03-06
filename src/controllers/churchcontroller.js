@@ -4,6 +4,8 @@ const donationObject = require("../models/donationsmodel.js");
 
 const stripe = require("stripe")(process.env.STRIPE_KEY);
 
+const { transporter } = require("../configs/mailutil.js");
+
 ///CHURCCH///
 const createAchurch = async (req, res) => {
   //get pastors ID after creating his profile or after logging
@@ -376,10 +378,12 @@ const editDonationStatus = async (req, res) => {
   const { donationId, churchId, status } = req.body;
 
   try {
-    const donationExists = await donationObject.findOne({
-      _id: donationId,
-      church: churchId,
-    }).select("-donators");
+    const donationExists = await donationObject
+      .findOne({
+        _id: donationId,
+        church: churchId,
+      })
+      .select("-donators");
 
     if (donationExists) {
       if (["on", "off", "completed"].includes(status)) {
@@ -576,6 +580,64 @@ const getAllUserChurches = async (req, res) => {
   }
 };
 
+const sendEmailToAllMembers = async (req, res) => {
+  try {
+    const { subject, message, churchId, pastorId } = req.body;
+
+    const theChurch = await churchObject.findOne({ _id: churchId }).populate({
+      path: "members",
+      populate: {
+        path: "authDetails",
+        select: "email",
+      },
+    });
+    if (theChurch) {
+      if (theChurch.pastor.toString() === pastorId) {
+        const members = theChurch.members;
+
+        if (!members.length) {
+          return res.status(404).json({ message: "No members found" });
+        }
+
+        const emails = members.map((m) => m.authDetails.email);
+
+        console.log(emails);
+
+        await transporter.sendMail({
+          from: `${theChurch.name}`,
+          bcc: emails,
+          subject: subject,
+          html: `<p>${message}</p>`,
+        });
+
+        res.status(200).send({
+          success: true,
+          message: `Email sent to ${emails.length} member(s)`,
+          data: emails,
+        });
+      } else {
+        res.status(400).send({
+          success: false,
+          message: `Unable to send emails`,
+          data: "You are not the pastor of this church",
+        });
+      }
+    } else {
+      res.status(404).send({
+        success: false,
+        message: `Unable send email`,
+        data: "Church with this Id does not exist",
+      });
+    }
+  } catch (err) {
+    res.status(500).send({
+      success: false,
+      message: "Unable to send emails",
+      data: err.message,
+    });
+  }
+};
+
 ///todo
 
 //get a donation
@@ -591,4 +653,6 @@ module.exports = {
   getAllPastorChurches,
   getAllUserChurches,
   editDonationStatus,
+
+  sendEmailToAllMembers
 };
