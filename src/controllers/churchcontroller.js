@@ -4,7 +4,7 @@ const donationObject = require("../models/donationsmodel.js");
 
 const stripe = require("stripe")(process.env.STRIPE_KEY);
 
-const { transporter } = require("../configs/mailutil.js");
+const transporter = require("../configs/mailutil.js");
 
 ///CHURCCH///
 const createAchurch = async (req, res) => {
