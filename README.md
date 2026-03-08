@@ -34,5 +34,5 @@ Announcement board
 Email
 Prayer request management (with privacy controls)
 
-See [Documentation](https://sidneyemeka-church_management_system-98.mintlify.app/ for documentation)
+See [Documentation](https://sidneyemeka-church_management_system-98.mintlify.app)
 
