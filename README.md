@@ -16,12 +16,9 @@ JWT token implementation
 2. Member Management
 Member profiles with contact info, family relationships
 Membership status tracking
-Photo uploads
 Baptism/confirmation dates
 3. Attendance Tracking
 Service attendance recording
-Event participation
-Volunteer hours tracking
 Reports and analytics
 4. Event & Calendar Management
 Service scheduling
@@ -34,14 +31,8 @@ Contribution statements
 Fund/campaign tracking
 6. Communication Tools
 Announcement board
-Email/SMS notifications
+Email
 Prayer request management (with privacy controls)
 
-Tech Stack Recommendation
-Backend:
-Node.js + Express - Core server
-MongoDB - Database
-JWT + bcrypt - Authentication
-Nodemailer - Email notifications
-Multer - File uploads
+See [Documentation](https://sidneyemeka-church_management_system-98.mintlify.app/ for documentation)
 
