@@ -26,9 +26,7 @@ Event creation and registration
 Recurring events
 5. Donation Management
 Donation recording
-Online giving integration (simulate with mock payment)
-Contribution statements
-Fund/campaign tracking
+Online giving integration
 6. Communication Tools
 Announcement board
 Email
